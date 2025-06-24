@@ -1,172 +1,153 @@
 // Created by andre on 6/23/2025.
 //
-
 #ifndef OCTREE_OCTREE_CPP
 #define OCTREE_OCTREE_CPP
 
-#include<vector>
+#include <vector>
 #include <cstdlib>
 #include <string>
 #include <functional>
+#include <array>
 
 using namespace std;
+
 template<typename T>
 class Octree {
 public:
     struct Point3D {
         double x, y, z;
-        Point3D(int x,int y, int z):x(x),y(y),z(z){}
-        Point3D operator+(Point3D& o){return{x+o.x,y+o.y,z+o.z};}
-        Point3D operator-(Point3D& o){return{x-o.x,y-o.y,z-o.z};}
+        Point3D(double x,double y, double z):x(x),y(y),z(z){}
+        Point3D operator+(Point3D& o){ return Point3D{x+o.x, y+o.y, z+o.z}; }
+        Point3D operator-(Point3D& o){ return Point3D{x-o.x, y-o.y, z-o.z}; }
+        bool operator==(Point3D& o){ return (x==o.x && y==o.y && z==o.z); }
     };
+
     struct BoundingBox {
         Point3D center;
-        double halfSize; // radio en cada eje
-        bool contains(const Point3D& p) const {
-            return (((center.x - halfSize) <= p.x && p.x <= (center.x + halfSize)) &&
-            ((center.y - halfSize) <= p.y && p.y <= (center.y + halfSize)) &&
-            ((center.z - halfSize) <= p.z && p.z <= (center.z + halfSize)));
-
+        double halfSize;
+        BoundingBox(const Point3D& c, double hs): center(c), halfSize(hs) {}
+        bool contains(const Point3D& p)  {
+            return ((center.x - halfSize) <= p.x && p.x <= (center.x + halfSize)) &&
+                   ((center.y - halfSize) <= p.y && p.y <= (center.y + halfSize)) &&
+                   ((center.z - halfSize) <= p.z && p.z <= (center.z + halfSize));
         }
-
-        BoundingBox(Point3D &center,double halfsize):center(center),halfSize(halfsize){}
     };
-    // Nodo interno
+
     struct Node {
         BoundingBox boundary;
-        vector<pair<Point3D,vector<T>>> points;
-        Node children[8];
+        vector<pair<Point3D, vector<T>>> points;
+        array<Node*,8> children{};
         bool isLeaf = true;
-        Node(BoundingBox& b):boundary(b),isLeaf(true){
-            for(int i=0;i<8;i++){
 
-            }
-        }
-
+        Node(const BoundingBox& b): boundary(b) {}
+        Node() = default;
     };
+
     Node* root;
-    std::size_t density;
+    size_t density;
     int maxDepth;
 
-    Octree(const BoundingBox& boundary,size_t capacity = 8,int maxDepth = 8):density(capacity),maxDepth(maxDepth){
-        root=new Node{boundary};
+    Octree(const BoundingBox& boundary, size_t capacity = 8, int maxDepth = 8)
+            : density(capacity), maxDepth(maxDepth) {
+        root = new Node(boundary);
     }
-    ~Octree(){
-    }
-
-    // Operaciones públicas
-    bool insert(const Point3D& p, const T& value){
-        if(!root->boundary.contains(p)) return false;
-        return insert(root,p,value,0);
+    ~Octree() {
+        // Destructor implementation omitted
     }
 
-    bool remove(const Point3D& p, const T* value = nullptr){
-
+    bool insert(Point3D& p, T& value) {
+        if (!root->boundary.contains(p)) return false;
+        return insert(root, p, value, 0);
+       return{};
     }
-    vector<T> find(const Point3D& p){
-        if(!root->boundary.contains(p)) return {};
-        Node* it=root;
+
+    bool remove(Point3D& p, T* value = nullptr) {
+        return {};
+    }
+
+    vector<T> find(Point3D& p) {
+        if (!root->boundary.contains(p)) return {};
+        Node* it = root;
         int index;
-        while(!it->isLeaf){
-            index=nearest_child(p,it->children);
-            it=it->children[index];
+        while (!it->isLeaf) {
+            index = nearest_child(p, it->children);
+            it = it->children[index];
         }
-        for(int i=0;i<it->points.size();i++) {
-            if (it->points[i].first == p) {
-                return it->points[i].second;
-            }
+        for (auto& pr : it->points) {
+            if (pr.first == p)
+                return pr.second;
         }
-        return{};
-
+        return {};
     }
 
-    void clear() {
-
-    }
-
-    size_t size() {
-        return{};
-    }
-    int depth() {
-        return{};
-    }
-    int max_depth(){
-        maxDepth;
-    }
-    string toString(int indent = 0){
-        return{};
-    }
-    void traverse(const std::function<void(const Octree&)>& fn){
-
-    }
+    void clear() {}
+    size_t size() { return {}; }
+    int depth() { return {}; }
+    int max_depth() { return maxDepth; }
+    string toString(int indent = 0) { return {}; }
+    void traverse(const function<void(const Octree&)>& fn) {}
 
 private:
+    void subdivide(Node* node) {
+        node->isLeaf = false;
+        Point3D c = node->boundary.center;
+        double hf = node->boundary.halfSize / 2;
 
-    bool insert(Node* node, const Point3D& p, const T& value, int depth){
-        if(depth>=maxDepth) return false;
-        if(node->isLeaf) {
-            for(int i=0;i<node->points.size();i++){
-                if(node->points[i].first==p){
-                    node->points[i].second.push_back(value);
-                    return true;
-                }
+        node->children[0] = new Node(BoundingBox(Point3D{ c.x + hf, c.y + hf, c.z + hf },hf));
+        node->children[1] = new Node(BoundingBox(Point3D{ c.x - hf, c.y + hf, c.z + hf },hf));
+        node->children[2] = new Node(BoundingBox(Point3D{ c.x + hf, c.y - hf, c.z + hf },hf));
+        node->children[3] = new Node(BoundingBox(Point3D{ c.x + hf, c.y + hf, c.z - hf },hf));
+        node->children[4] = new Node(BoundingBox(Point3D{ c.x - hf, c.y - hf, c.z + hf },hf));
+        node->children[5] = new Node(BoundingBox(Point3D{ c.x - hf, c.y + hf, c.z - hf },hf));
+        node->children[6] = new Node(BoundingBox(Point3D{ c.x + hf, c.y - hf, c.z - hf },hf));
+        node->children[7] = new Node(BoundingBox(Point3D{ c.x - hf, c.y - hf, c.z - hf },hf));
+        for (int i = node->points.size() - 1; i >= 0; --i) {
+            auto pr = node->points[i];
+            for(auto& v:pr.second){
+                insert(node,pr.first,v,0);
             }
-            node->points.push_back({p, value});
-            if(node->points.size()>density) subdivide(node);
-            return true;
         }
-        int index= nearest_child(p,node->children);
-        return insert(node->children[index],p,value,depth+1);
-
     }
 
-    bool remove(Node* node, const Point3D& p, const T* value, int depth){
-        return{};
-    }
-
-    void subdivide(Node* node){
-        node->isLeaf=false;
-        Point3D center=node->boundary.center;
-        double hf=node->boundary.halfSize/2;
-        node->children= {
-                {BoundingBox(center + Point3D{hf, hf, hf},  hf)},
-                {BoundingBox(center + Point3D{-hf, hf, hf}, hf)},
-                {BoundingBox(center + Point3D{hf, -hf, hf}, hf)},
-                {BoundingBox(center + Point3D{hf, hf, -hf}, hf)},
-                {BoundingBox(center - Point3D{hf, hf, hf},  hf)},
-                {BoundingBox(center - Point3D{-hf, hf, hf}, hf)},
-                {BoundingBox(center - Point3D{hf, -hf, hf}, hf)},
-                {BoundingBox(center - Point3D{hf, hf, -hf}, hf)}
-        };
-        for( int i=i<node->points.size()-1;i>=0;i--){
-            pair<Point3D,vector<T>> pair=node->points[i];
-            insert(node,pair.first,pair.second);
-            node->points.pop_back();
+    bool insert(Node* node, Point3D& p, T& value, int depth) {
+        if (depth >= maxDepth) return false;
+        if (!node->isLeaf) {
+            int index = nearest_child(p, node->children);
+            return insert(node->children[index], p, value, depth + 1);
         }
-
+        for (auto& pr : node->points) {
+            if (pr.first == p) {
+                pr.second.push_back(value);
+                return true;
+            }
+        }
+        node->points.push_back({p, vector<T>(1, value)});
+        if (node->points.size() > density)subdivide(node);
+        return true;
     }
 
-    int nearest_child(const Point3D& p,Node array[8]){
-        int index,  currentDis,minDis=abs(array[0].boundary.center.x-p.x)+
-                                      abs(array[0].boundary.center.y-p.y)+
-                                      abs(array[0].boundary.center.z-p.z);;;
-        for( int i=1;i< 8;i++){
-            currentDis=abs(array[i].boundary.center.x-p.x)+
-                    abs(array[i].boundary.center.y-p.y)+
-                    abs(array[i].boundary.center.z-p.z);
-            if(currentDis<minDis){
-                minDis=currentDis;
-                index=i;
+    bool remove(Node* node, Point3D& p, T* value, int depth) {
+        return {};
+    }
+
+    int nearest_child(const Point3D& p, const array<Node*,8>& children) {
+        int index = 0;
+        int minDis = abs(children[0]->boundary.center.x - p.x) +
+                     abs(children[0]->boundary.center.y - p.y) +
+                     abs(children[0]->boundary.center.z - p.z);
+        for (int i = 1; i < 8; ++i) {
+            int currentDis = abs(children[i]->boundary.center.x - p.x) +
+                             abs(children[i]->boundary.center.y - p.y) +
+                             abs(children[i]->boundary.center.z - p.z);
+            if (currentDis < minDis) {
+                minDis = currentDis;
+                index = i;
             }
         }
         return index;
-
     }
 
-    void clear(Node* node){
-
-    }
+    void clear(Node* node) {}
 };
-
 
 #endif //OCTREE_OCTREE_CPP
