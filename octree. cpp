@@ -129,7 +129,6 @@ private:
 
 
     void subdivide(Node* node) {    //solo se llama cuando se crean varios puntos mas no cuando se insertan varios valores en un solo punto
-        cout<<"aaa";
         node->isLeaf = false;
         Point3D c = node->boundary.center;
         double hf = node->boundary.halfSize / 2;
@@ -144,7 +143,7 @@ private:
         node->children[7] = new Node(BoundingBox(Point3D{ c.x - hf, c.y - hf, c.z - hf },hf));
         for (int i = node->points.size() - 1; i >= 0; --i) {
             auto pr = node->points[i];
-            for(auto& v:pr.second){
+            for(T& v:pr.second){
                 insert(node,pr.first,v,0);
             }
         }

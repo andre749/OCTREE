@@ -44,7 +44,6 @@ int main() {
     ent=10;
     cout<<a.insert(p1,ent)<<"\n";
     ent=1;
-    a.insert(p2,ent);
     int total_nodes = 0;
   //  a.traverse([&](const Octree<int>::Node*) {total_nodes++;});
     //cout << "Total de nodos: " << total_nodes << '\n';
@@ -53,7 +52,7 @@ int main() {
         const auto& c = node->boundary.center;
         cout << "Nodo centro: (" << c.x << ", " << c.y << ", " << c.z << ")\n";
 
-        if (!node->points.empty()) {
+        if (node->isLeaf and node->points.size()) {
             for (const auto& pr : node->points) {
                 const auto& p = pr.first;
                 cout << "  Punto: (" << p.x << ", " << p.y << ", " << p.z << ") -> Valores: ";
@@ -67,6 +66,10 @@ int main() {
         }
     };
     a.traverse(funct);
+    a.insert(p2,ent);
+    cout<<endl<<endl;
+    a.traverse(funct);
+
 
 
 //    a.remove(p);
