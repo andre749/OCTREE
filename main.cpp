@@ -1,5 +1,4 @@
 #include <iostream>
-#include <mmcobj.h>
 #include "octree. cpp"
 using namespace std;
 template<
@@ -26,7 +25,7 @@ int main() {
     Octree<int>::Point3D p(0,0,0);
     Octree<int>::BoundingBox bb(p,1);
     Octree<int> a(bb,2,100);
-    Octree<int>::Point3D p1(0.2,0.76,-0.5);
+    Octree<int>::Point3D p1(0.2,0.76,-0.5),p2(1,0,0);
     int ent=2;
     cout<<a.insert(p,ent)<<"\n";
     ent=21;
@@ -35,6 +34,7 @@ int main() {
     cout<<a.insert(p,ent)<<"\n";
     ent=-1;
     cout<<a.insert(p,ent)<<"\n";
+
     ent=-58;
     cout<<a.insert(p1,ent)<<"\n";
     ent=3;
@@ -43,11 +43,36 @@ int main() {
     cout<<a.insert(p1,ent)<<"\n";
     ent=10;
     cout<<a.insert(p1,ent)<<"\n";
-    cout<<a.find(p);
-    cout<<a.find(p1);
+    ent=1;
+    a.insert(p2,ent);
+    int total_nodes = 0;
+  //  a.traverse([&](const Octree<int>::Node*) {total_nodes++;});
+    //cout << "Total de nodos: " << total_nodes << '\n';
+
+    auto funct= [](const Octree<int>::Node* node) {
+        const auto& c = node->boundary.center;
+        cout << "Nodo centro: (" << c.x << ", " << c.y << ", " << c.z << ")\n";
+
+        if (!node->points.empty()) {
+            for (const auto& pr : node->points) {
+                const auto& p = pr.first;
+                cout << "  Punto: (" << p.x << ", " << p.y << ", " << p.z << ") -> Valores: ";
+                for (const auto& val : pr.second) {
+                    cout << val << ' ';
+                }
+                cout << '\n';
+            }
+        } else {
+            cout << "  (sin puntos)\n";
+        }
+    };
+    a.traverse(funct);
 
 
-
+//    a.remove(p);
+//    cout<<a.find(p);
+//    cout<<a.find(p2);
+//    cout<<a.find(p1);
 
 
 //    array<Octree<int>::Node*,2> a;
@@ -57,7 +82,6 @@ int main() {
 //    };
 //
 //    cout<<a[0]->boundary.center.y;
-
 
 
 

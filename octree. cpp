@@ -17,8 +17,7 @@ public:
     struct Point3D {
         double x, y, z;
         Point3D(double x,double y, double z):x(x),y(y),z(z){}
-        Point3D operator+(Point3D& o){ return Point3D{x+o.x, y+o.y, z+o.z}; }
-        Point3D operator-(Point3D& o){ return Point3D{x-o.x, y-o.y, z-o.z}; }
+     
         bool operator==(Point3D& o){ return (x==o.x && y==o.y && z==o.z); }
     };
 
@@ -51,18 +50,32 @@ public:
             : density(capacity), maxDepth(maxDepth) {
         root = new Node(boundary);
     }
-    ~Octree() {
-        // Destructor implementation omitted
-    }
+
 
     bool insert(Point3D& p, T& value) {
         if (!root->boundary.contains(p)) return false;
         return insert(root, p, value, 0);
-       return{};
     }
 
     bool remove(Point3D& p, T* value = nullptr) {
-        return {};
+        if (!root->boundary.contains(p)) return false;
+        Node* it = root;
+        int index;
+        while (!it->isLeaf) {
+            index = nearest_child(p, it->children);
+            it = it->children[index];
+        }
+        auto point=it->points.begin();
+        while(point!=it->points.end() and !(point->first==p))point++;
+
+        if(point==it->points.end()) return false;
+        if (value==nullptr){it->points.erase(point); return true;}
+
+        for(auto val=point->second.begin(); val!=point->second.end();val++){
+            if(*val==*value){ point->second.erase(val); return true;}
+        }
+        return false;
+
     }
 
     vector<T> find(Point3D& p) {
@@ -82,13 +95,41 @@ public:
 
     void clear() {}
     size_t size() { return {}; }
-    int depth() { return {}; }
-    int max_depth() { return maxDepth; }
-    string toString(int indent = 0) { return {}; }
-    void traverse(const function<void(const Octree&)>& fn) {}
+    int max_depth() {
+        return maxDepth;
+    }
+
+    ~Octree() {
+        destroy(root);
+    }
+
+    void traverse(const function<void(const Node*)>& fn) {
+        traverse(root, fn);
+    }
+
 
 private:
-    void subdivide(Node* node) {
+    void destroy(Node* node) {
+        if (!node) return;
+        for (Node* child : node->children) {
+            destroy(child);
+            delete child;
+        }
+    }
+
+    void traverse(Node* node, const function<void(const Node*)>& fn) {
+        if (!node) return;
+        fn(node);
+        if (!node->isLeaf) {
+            for (Node* child : node->children) {
+                traverse(child, fn);
+            }
+        }
+    }
+
+
+    void subdivide(Node* node) {    //solo se llama cuando se crean varios puntos mas no cuando se insertan varios valores en un solo punto
+        cout<<"aaa";
         node->isLeaf = false;
         Point3D c = node->boundary.center;
         double hf = node->boundary.halfSize / 2;
@@ -126,9 +167,7 @@ private:
         return true;
     }
 
-    bool remove(Node* node, Point3D& p, T* value, int depth) {
-        return {};
-    }
+
 
     int nearest_child(const Point3D& p, const array<Node*,8>& children) {
         int index = 0;
@@ -147,7 +186,6 @@ private:
         return index;
     }
 
-    void clear(Node* node) {}
 };
 
 #endif //OCTREE_OCTREE_CPP
