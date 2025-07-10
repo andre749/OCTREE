@@ -93,11 +93,19 @@ public:
         return {};
     }
 
-    void clear() {}
-    size_t size() { return {}; }
-    int max_depth() {
-        return maxDepth;
+    void clear() {
+        destroy(root);
+        root = new Node(BoundingBox(root->boundary.center, root->boundary.halfSize));
     }
+
+    size_t size() {
+        size_t total = 0;
+        traverse([&](const Node* node) {
+            total += node->points.size();
+        });
+        return total;
+    }
+
 
     ~Octree() {
         destroy(root);
