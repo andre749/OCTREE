@@ -2,7 +2,7 @@
 //
 #ifndef OCTREE_OCTREE_CPP
 #define OCTREE_OCTREE_CPP
-
+#include <cmath>
 #include <vector>
 #include <cstdlib>
 #include <string>
@@ -94,9 +94,12 @@ public:
     }
 
     void clear() {
+        if (!root) return;
+        BoundingBox original = root->boundary;
         destroy(root);
-        root = new Node(BoundingBox(root->boundary.center, root->boundary.halfSize));
+        root = new Node(original);
     }
+
 
     size_t size() {
         size_t total = 0;
